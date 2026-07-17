@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}通知列表{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">通知</h1>
+    <form method="post" action="/notifications/read-all">
+      <button class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">全部标记已读</button>
+    </form>
+  </div>
+
+  {% if notifications and notifications.results %}
+  <div class="space-y-3">
+    {% for notif in notifications.results %}
+    <div class="bg-white rounded-lg shadow p-4 {% if not notif.is_read %}border-l-4 border-indigo-500{% endif %}">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="font-medium text-gray-900">{{ notif.title }}</p>
+          <p class="text-sm text-gray-600 mt-1">{{ notif.content }}</p>
+          <p class="text-xs text-gray-400 mt-2">{{ notif.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+        </div>
+        {% if not notif.is_read %}
+        <form method="post" action="/notifications/{{ notif.id }}/read">
+          <button class="text-xs text-indigo-600 hover:text-indigo-700">标记已读</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-gray-500 text-center py-8">暂无通知</p>
+  {% endif %}
+</div>
+{% endblock %}

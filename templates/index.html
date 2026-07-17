@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}活动广场{% endblock %}
+{% block content %}
+<!-- 搜索和筛选栏 -->
+<div class="bg-white rounded-xl shadow-md p-4 mb-8">
+  <form method="get" action="/" class="flex flex-wrap gap-3 items-end">
+    <div class="flex-1 min-w-[200px]">
+      <label class="block text-xs font-medium text-gray-500 mb-1">关键词</label>
+      <input type="text" name="keyword" value="{{ keyword or '' }}" placeholder="搜索活动..."
+             class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+    </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-500 mb-1">分类</label>
+      <select name="category" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <option value="">全部分类</option>
+        {% for cat in ["运动","读书","聚会","旅行","学习","其他"] %}
+        <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm transition-colors">搜索</button>
+    {% if user %}<a href="/activities/create" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm transition-colors">+ 创建活动</a>{% endif %}
+  </form>
+</div>
+
+<!-- 活动卡片网格 -->
+{% if activities and activities.results %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  {% for act in activities.results %}
+  <a href="/activities/{{ act.id }}" class="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+    {% if act.cover_image %}
+    <img src="/uploads/{{ act.cover_image }}" alt="{{ act.title }}" class="w-full h-40 object-cover">
+    {% else %}
+    <div class="w-full h-40 bg-gradient-to-r from-indigo-400 to-purple-500 flex items-center justify-center">
+      <span class="text-white text-3xl">{{ act.category }}</span>
+    </div>
+    {% endif %}
+    <div class="p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="px-2 py-0.5 rounded text-xs font-medium
+          {% if act.status == 'ongoing' %}bg-green-100 text-green-700
+          {% else %}bg-blue-100 text-blue-700{% endif %}">
+          {% if act.status == 'ongoing' %}进行中{% else %}即将开始{% endif %}
+        </span>
+        <span class="text-xs text-gray-500">{{ act.category }}</span>
+      </div>
+      <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2">{{ act.title }}</h3>
+      <div class="text-xs text-gray-500 space-y-1">
+        <p>📅 {{ act.start_time.strftime('%m/%d %H:%M') }}</p>
+        <p>📍 {{ act.location }}</p>
+        <p>👥 已报名 {{ counts[act.id].approved }} 人{% if act.max_participants > 0 %}/{{ act.max_participants }}{% endif %}{% if counts[act.id].pending > 0 %} · {{ counts[act.id].pending }} 待审{% endif %}</p>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- 分页 -->
+{% if activities.total_pages > 1 %}
+<div class="flex justify-center mt-8 space-x-2">
+  {% for p in range(1, activities.total_pages + 1) %}
+  <a href="?keyword={{ keyword }}&category={{ category }}&tag={{ tag }}&page={{ p }}"
+     class="px-3 py-1 rounded {% if p == activities.page %}bg-indigo-600 text-white{% else %}bg-white text-gray-700 border hover:bg-gray-50{% endif %}">{{ p }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="text-center py-16">
+  <p class="text-4xl mb-4">🔍</p>
+  <p class="text-lg text-gray-500 mb-4">暂无活动</p>
+  {% if user %}<a href="/activities/create" class="text-indigo-600 hover:text-indigo-700 font-medium">创建第一个活动 →</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ activity.title }}{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  {% if activity.cover_image %}
+  <img src="/uploads/{{ activity.cover_image }}" alt="{{ activity.title }}" class="w-full h-64 object-cover rounded-xl mb-6">
+  {% endif %}
+
+  <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+    <div class="flex justify-between items-start mb-4">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ activity.title }}</h1>
+        <p class="text-sm text-gray-500">由 <span class="font-medium text-gray-700">{{ activity.creator.nickname }}</span> 发起</p>
+      </div>
+      <span class="px-3 py-1 rounded-full text-sm font-medium
+        {% if activity.status == 'published' %}bg-blue-100 text-blue-700
+        {% elif activity.status == 'ongoing' %}bg-green-100 text-green-700
+        {% elif activity.status == 'ended' %}bg-gray-100 text-gray-500
+        {% elif activity.status == 'cancelled' %}bg-red-100 text-red-700
+        {% else %}bg-gray-100 text-gray-700{% endif %}">
+        {% if activity.status == 'draft' %}草稿
+        {% elif activity.status == 'published' %}已发布
+        {% elif activity.status == 'ongoing' %}进行中
+        {% elif activity.status == 'ended' %}已结束
+        {% elif activity.status == 'cancelled' %}已取消{% endif %}
+      </span>
+    </div>
+
+    <div class="space-y-2 text-sm text-gray-600 mb-6">
+      <p>📅 {{ activity.start_time.strftime('%Y-%m-%d %H:%M') }} ~ {{ activity.end_time.strftime('%Y-%m-%d %H:%M') }}</p>
+      <p>📍 {{ activity.location }}</p>
+      <p>👥 已报名：{{ counts[activity.id].approved }} 人（待审核 {{ counts[activity.id].pending }} 人）{% if activity.max_participants > 0 %}/ {{ activity.max_participants }}{% endif %}{% if counts[activity.id].waitlist > 0 %} · 候补 {{ counts[activity.id].waitlist }} 人{% endif %}</p>
+      <p>💰 {% if activity.fee > 0 %}{{ activity.fee }} 元{% else %}免费{% endif %}</p>
+      <p>🏷 分类：{{ activity.category }}</p>
+      {% if activity.tags %}
+      <p>🏷 标签：{% for tag in activity.tags %}<span class="inline-block bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs mr-1">{{ tag.tag_name }}</span>{% endfor %}</p>
+      {% endif %}
+    </div>
+
+    <div class="prose max-w-none mb-6">
+      <h3 class="text-lg font-semibold mb-2">活动详情</h3>
+      <p class="whitespace-pre-wrap text-gray-700">{{ activity.description }}</p>
+    </div>
+
+    <!-- 操作按钮 -->
+    {% if user %}
+    <div class="flex space-x-3 pt-4 border-t border-gray-200">
+      {% if user.id == activity.creator_id %}
+        {% if activity.status == 'draft' %}
+        <form method="post" action="/activities/{{ activity.id }}/publish">
+          <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">发布活动</button>
+        </form>
+        {% endif %}
+        <a href="/activities/{{ activity.id }}/edit" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200">编辑活动</a>
+        <a href="/activities/{{ activity.id }}/registrations"
+           class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 font-semibold">
+          📋 管理报名
+          {% set total_pending = counts[activity.id].pending + counts[activity.id].approved + counts[activity.id].waitlist %}
+          {% if total_pending > 0 %}<span class="ml-1 bg-white text-indigo-600 px-2 py-0.5 rounded-full text-xs font-bold">{{ total_pending }}</span>{% endif %}
+        </a>
+        {% if activity.status not in ('cancelled', 'ended') %}
+        <form method="post" action="/activities/{{ activity.id }}/cancel" onsubmit="return confirm('确定要取消此活动吗？')" class="inline">
+          <button class="bg-red-100 text-red-600 px-4 py-2 rounded-lg hover:bg-red-200">取消活动</button>
+        </form>
+        {% endif %}
+      {% else %}
+        {% if activity.status in ('published', 'ongoing') %}
+        <form method="post" action="/activities/{{ activity.id }}/register">
+          <button class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">立即报名</button>
+        </form>
+        {% endif %}
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- 已报名用户列表 -->
+  <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold text-gray-900">
+        报名列表
+        <span class="text-sm font-normal text-gray-500 ml-2">
+          已通过 {{ counts[activity.id].approved }} 人{% if activity.max_participants > 0 %}/{{ activity.max_participants }}{% endif %}
+          {% if counts[activity.id].pending > 0 %} · {{ counts[activity.id].pending }} 待审核{% endif %}
+          {% if counts[activity.id].waitlist > 0 %} · {{ counts[activity.id].waitlist }} 候补{% endif %}
+        </span>
+      </h3>
+      {% if user and user.id == activity.creator_id %}
+      <a href="/activities/{{ activity.id }}/registrations" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">📋 管理报名 →</a>
+      {% endif %}
+    </div>
+
+    {% if participants %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      {% for p in participants %}
+      <div class="flex items-center gap-2 p-2 rounded-lg bg-gray-50">
+        <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-sm font-bold">
+          {{ p.nickname[0] }}
+        </div>
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-gray-900 truncate">{{ p.nickname }}</p>
+          {% if p.checked_in %}
+          <p class="text-xs text-green-600">✅ 已签到</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-400 text-center py-6">还没有人报名，来做第一个吧！</p>
+    {% endif %}
+  </div>
+
+  <!-- 评论区占位 -->
+  <div class="bg-white rounded-xl shadow-md p-6">
+    <h3 class="text-lg font-semibold mb-4">评论</h3>
+    <p class="text-gray-500 text-sm text-center py-4">评论功能即将上线</p>
+  </div>
+</div>
+{% endblock %}
