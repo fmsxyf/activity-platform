@@ -41,6 +41,10 @@ app = FastAPI(
 # Session 中间件
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
+# 确保目录存在（在挂载静态文件之前）
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs("static", exist_ok=True)
+
 # 静态文件挂载
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
