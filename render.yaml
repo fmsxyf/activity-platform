@@ -1,13 +1,11 @@
 services:
   - type: web
-    name: activity-platform
-    runtime: python
+    name: activity-platform-app
+    env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python -m uvicorn main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: SECRET_KEY
         generateValue: true
-      - key: DATABASE_URL
-        value: sqlite:///./activity.db
       - key: PYTHON_VERSION
-        value: 3.11.15
+        value: 3.11.0
